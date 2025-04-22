@@ -1,0 +1,104 @@
+---
+title: "Porównanie Giełd: WIG20, DAX, PX, FTSE MIB"
+subtitle: "SAD Projekt 1"
+
+author: "Wojciech Łopacz, Tomasz Żarnovsky"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis]
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(scales)
+```
+
+```{r dane, echo=FALSE}
+# Linki do danych dziennych ze Stooq
+wig20_url <- "https://stooq.pl/q/d/l/?s=wig20&i=d"
+dax_url <- "https://stooq.pl/q/d/l/?s=^dax&i=d"
+px_url <- "https://stooq.pl/q/d/l/?s=^px&i=d"
+
+# Funkcja do pobierania danych z internetu
+pobierz_dane <- function(url, indeks) {
+  read_csv(url, col_types = cols()) %>%
+    mutate(Data = ymd(Data),
+           Close = as.numeric(Zamkniecie),
+           Indeks = indeks) %>%
+    select(Data, Close, Indeks)
+}
+
+wig20 <- pobierz_dane(wig20_url, "WIG20")
+dax <- pobierz_dane(dax_url, "DAX")
+px <- pobierz_dane(px_url, "PX (Czechy)")
+
+# Wczytanie FTSE MIB z pliku lokalnego
+mib <- read_csv("^fmib_d.csv", col_types = cols()) %>%
+  mutate(Data = ymd(Date),
+         Close = as.numeric(Close),
+         Indeks = "FTSE MIB") %>%
+  select(Data, Close, Indeks)
+
+# Połączenie danych
+indeksy <- bind_rows(wig20, dax, px, mib) %>%
+  filter(Data >= "2020-01-01")
+```
+
+# Zmiana indeksów od 2020 r.
+
+```{r wykres, echo=FALSE, fig.align='center', fig.width=10, fig.height=5}
+# Normalizacja do 100% na starcie
+indeksy_norm <- indeksy %>%
+  group_by(Indeks) %>%
+  mutate(start = first(Close),
+         Zmieniony = Close / start * 100)
+
+indeksy_norm$Indeks <- recode(indeksy_norm$Indeks,
+                              "WIG20" = "WIG20 (Polska)",
+                              "DAX" = "DAX (Niemcy)",
+                              "PX (Czechy)" = "PX (Czechy)",
+                              "FTSE MIB" = "FTSE MIB (Włochy)")
+# Wykres
+ggplot(indeksy_norm, aes(x = Data, y = Zmieniony, color = Indeks)) +
+  geom_line(linewidth = 1) +
+  labs(title = "Porównanie indeksów giełdowych (2020–2025)",
+       y = "% zmiany (start = 100%)",
+       x = NULL) +
+  scale_y_continuous(labels = function(x) paste0(round(x), "%")) +
+  theme_minimal()
+```
+
+Po pandemicznym załamaniu w 2020 r. wszystkie indeksy wystartowały z podobnego poziomu. Największy wzrost osiągnęła giełda czeska (+82%), DAX i FTSE MIB zyskały ponad 50%. WIG20 wypada najsłabiej – tylko +22%.
+---
+
+# Zmiana procentowa od stycznia 2020 r.
+
+```{r slupki, echo=FALSE, fig.align='center', fig.width=8, fig.height=5}
+# Oblicz zmiany procentowe
+zmiany <- indeksy %>%
+  group_by(Indeks) %>%
+  summarise(Poczatkowa = first(Close),
+            Koncowa = last(Close)) %>%
+  mutate(ZmianaProc = (Koncowa / Poczatkowa - 1) * 100)
+
+zmiany$Indeks <- recode(zmiany$Indeks,
+                        "WIG20" = "WIG20 (Polska)",
+                        "DAX" = "DAX (Niemcy)",
+                        "PX (Czechy)" = "PX (Czechy)",
+                        "FTSE MIB" = "FTSE MIB (Włochy)")
+
+# Wykres słupkowy
+ggplot(zmiany, aes(x = reorder(Indeks, -ZmianaProc), y = ZmianaProc, fill = Indeks)) +
+  geom_col() +
+  geom_text(aes(label = paste0(round(ZmianaProc, 1), "%")), vjust = -0.5) +
+  labs(title = "Zmiana indeksów od 2020 roku", y = "Zmiana (%)", x = NULL) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Na tle głównych europejskich indeksów giełdowych GPW (WIG20) wypada zdecydowanie najsłabiej. Wzrost od 2020 roku to zaledwie ~22%, podczas gdy konkurencyjne rynki osiągały wyniki ponad dwukrotnie wyższe. Inwestowanie na GPW nie jest obecnie atrakcyjne. Lepiej szukać okazji za granicą.
