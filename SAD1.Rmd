@@ -37,7 +37,7 @@ pobierz_dane <- function(url, indeks) {
 
 wig20 <- pobierz_dane(wig20_url, "WIG20")
 dax <- pobierz_dane(dax_url, "DAX")
-px <- pobierz_dane(px_url, "PX")
+px <- pobierz_dane(px_url, "PX (Czechy)")
 
 # Wczytanie FTSE MIB z pliku lokalnego
 mib <- read_csv("^fmib_d.csv", col_types = cols()) %>%
@@ -52,7 +52,7 @@ indeksy <- bind_rows(wig20, dax, px, mib) %>%
 ```
 
 
-```{r wykres, echo=FALSE, warning=FALSE, fig.align='center', fig.width=10, fig.height=5}
+```{r wykres, echo=FALSE, warning=FALSE, fig.align='center', fig.width=15, fig.height=7}
 # Normalizacja do 100% na starcie
 indeksy_norm <- indeksy %>%
   group_by(Indeks) %>%
@@ -69,16 +69,25 @@ ggplot(indeksy_norm, aes(x = Data, y = Zmieniony, color = Indeks)) +
   geom_line(linewidth = 1) +
   labs(title = "Porównanie indeksów giełdowych (2020–2025)",
        y = "% zmiany (start = 100%)",
-       x = NULL) +
+       x = "Rok") +
   scale_y_continuous(labels = function(x) paste0(round(x), "%")) +
-  theme_minimal()
+  theme_minimal()+
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+    axis.text.y = element_text(size = 14),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18),
+    plot.title = element_text(size =30),
+  )
 ```
 
 Przeprowadzono analizę porównawczą indeksów: WIG20, DAX, PX, FTSE MIB. Po pandemicznym załamaniu w 2020 r. wszystkie indeksy wystartowały z podobnego poziomu. Największy wzrost osiągnęła giełda czeska (+82%), DAX i FTSE MIB zyskały ponad 50%. WIG20 wypada najsłabiej – tylko +22%, co czyni GPW najmniej atrakcyjną.
 
 ---
 
-```{r sharpe, echo=FALSE, message=FALSE, fig.align='center', fig.width=10, fig.height=5}
+```{r sharpe, echo=FALSE, message=FALSE, fig.align='center', fig.width=15, fig.height=7}
 
 # Funkcja Sharpe'a
 calculate_rolling_sharpe <- function(returns, risk_free_rate = 0.02 / 12, window_size = 12) {
@@ -155,11 +164,20 @@ ggplot(sharpe_all %>% filter(RokMiesiac >= as.Date("2020-12-01")),
     title = "12-miesięczny wskaźnik Sharpe’a",
     subtitle = "Dane miesięczne od 2020 roku • Stopa wolna od ryzyka: 2% rocznie",
     y = "Wskaźnik Sharpe’a",
-    x = NULL,
+    x = "Rok",
     color = "Indeks"
   ) +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 14),  # Zwiększenie czcionki na osi X
+    axis.text.y = element_text(size = 14),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18),
+    plot.title = element_text(size = 30),
+    plot.subtitle = element_text(size = 20)
+  )
 ```
 
-Wskaźnik Sharpe'a to informacja o zysku skorygowanym o ryzyko (>1 dobrze, <0 źle).W ciągu ostatnich 9 miesięcy WIG20 miał najniższy wskaźnik Sharpe’a, co świadczy o słabym stosunku zysku do ryzyka. Potwierdza to, że GPW jest najmniej opłacalną z porównywanych giełd
+Wskaźnik Sharpe'a to informacja o zysku skorygowanym o ryzyko (>1 dobrze, <0 źle). W ciągu ostatnich 9 miesięcy WIG20 miał najniższy wskaźnik Sharpe’a, co świadczy o słabym stosunku zysku do ryzyka. Potwierdza to, że GPW jest najmniej opłacalną z porównywanych europejskich giełd.

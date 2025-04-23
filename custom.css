@@ -13,3 +13,7 @@
 .remark-slide-content h3 {
   font-size: 22px;
 }
+
+body {
+  background-color: #f9f9f9; /* Lekko szare tło */
+}
