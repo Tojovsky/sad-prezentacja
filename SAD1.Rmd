@@ -1,10 +1,9 @@
 ---
 title: >
-  Inwestowanie na Warszawskiej Giełdzie Papierów Wartościowych.<br>
-  Analiza porównawcza indeksów: WIG20, DAX, PX, FTSE MIB
+  Inwestowanie na Warszawskiej Giełdzie Papierów Wartościowych to zły pomysł.<br>
 subtitle: "<br>Statystyka w analizie danych SAD<br>Projekt 1"
 
-author: "Wojciech Łopacz, Tomasz Żarnovsky"
+author: "Wojciech Łapacz, Tomasz Żarnovsky"
 output:
   xaringan::moon_reader:
     css: ["default", "metropolis", "custom.css"]
@@ -75,33 +74,7 @@ ggplot(indeksy_norm, aes(x = Data, y = Zmieniony, color = Indeks)) +
   theme_minimal()
 ```
 
-Po pandemicznym załamaniu w 2020 r. wszystkie indeksy wystartowały z podobnego poziomu. Największy wzrost osiągnęła giełda czeska (+82%), DAX i FTSE MIB zyskały ponad 50%. WIG20 wypada najsłabiej – tylko +22%, co czyni GPW najmniej atrakcyjną.
----
-
-```{r slupki, echo=FALSE, fig.align='center', fig.width=8, fig.height=5}
-# Zmiany procentowe
-zmiany <- indeksy %>%
-  group_by(Indeks) %>%
-  summarise(Poczatkowa = first(Close),
-            Koncowa = last(Close)) %>%
-  mutate(ZmianaProc = (Koncowa / Poczatkowa - 1) * 100)
-
-zmiany$Indeks <- recode(zmiany$Indeks,
-                        "WIG20" = "WIG20 (Polska)",
-                        "DAX" = "DAX (Niemcy)",
-                        "PX (Czechy)" = "PX (Czechy)",
-                        "FTSE MIB" = "FTSE MIB (Włochy)")
-
-# Wykres słupkowy
-ggplot(zmiany, aes(x = reorder(Indeks, -ZmianaProc), y = ZmianaProc, fill = Indeks)) +
-  geom_col() +
-  geom_text(aes(label = paste0(round(ZmianaProc, 1), "%")), vjust = -0.5) +
-  labs(title = "Zmiana indeksów od 2020 roku", y = "Zmiana (%)", x = NULL) +
-  theme_minimal() +
-  theme(legend.position = "none")
-```
-
-Na tle głównych europejskich indeksów giełdowych GPW (WIG20) wypada zdecydowanie najsłabiej. Wzrost od 2020 roku to zaledwie ~22%, podczas gdy konkurencyjne rynki osiągały wyniki ponad dwukrotnie wyższe. Inwestowanie na GPW nie jest obecnie atrakcyjne. Lepiej szukać okazji za granicą.
+Przeprowadzono analizę porównawczą indeksów: WIG20, DAX, PX, FTSE MIB. Po pandemicznym załamaniu w 2020 r. wszystkie indeksy wystartowały z podobnego poziomu. Największy wzrost osiągnęła giełda czeska (+82%), DAX i FTSE MIB zyskały ponad 50%. WIG20 wypada najsłabiej – tylko +22%, co czyni GPW najmniej atrakcyjną.
 
 ---
 
@@ -189,4 +162,4 @@ ggplot(sharpe_all %>% filter(RokMiesiac >= as.Date("2020-12-01")),
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Wskaźnik Sharpe'a to informacja o zysku skorygowanym o ryzyko (>1 dobrze, <0 źle).W ciągu ostatnich 9 miesięcy WIG20 miał najniższy wskaźnik Sharpe’a, co świadczy o słabym stosunku zysku do ryzyka - obecnie najniższy poziom notuje FTSE MIB. Potwierdza to, że GPW jest najmniej opłacalną z porównywanych giełd
+Wskaźnik Sharpe'a to informacja o zysku skorygowanym o ryzyko (>1 dobrze, <0 źle).W ciągu ostatnich 9 miesięcy WIG20 miał najniższy wskaźnik Sharpe’a, co świadczy o słabym stosunku zysku do ryzyka. Potwierdza to, że GPW jest najmniej opłacalną z porównywanych giełd

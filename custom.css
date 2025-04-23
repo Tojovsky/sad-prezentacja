@@ -1,23 +1,15 @@
-/* 1. Usuń ciemny pasek */
-.remark-slide-content {
-  background: white;
-}
-
-/* 2. Usuń pomarańczową linię */
 .title-slide .inverse hr {
   border: none;
-}
-
-/* 3. Zmniejsz czcionkę podtytułu */
-.title-slide h2 {
-  font-size: 25px;
-  margin-top: -10px;
 }
 
 .remark-slide-content h1 {
   font-size: 30px;
 }
 
+.title-slide h2 {
+  font-size: 22px;
+}
+
 .remark-slide-content h3 {
-  font-size: 25px;
+  font-size: 22px;
 }
