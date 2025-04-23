@@ -1,11 +1,13 @@
 ---
-title: "Porównanie Giełd: WIG20, DAX, PX, FTSE MIB"
-subtitle: "SAD Projekt 1"
+title: >
+  Inwestowanie na Warszawskiej Giełdzie Papierów Wartościowych.<br>
+  Analiza porównawcza indeksów: WIG20, DAX, PX, FTSE MIB
+subtitle: "<br>Statystyka w analizie danych SAD<br>Projekt 1"
 
 author: "Wojciech Łopacz, Tomasz Żarnovsky"
 output:
   xaringan::moon_reader:
-    css: [default, metropolis]
+    css: ["default", "metropolis", "custom.css"]
     nature:
       highlightStyle: github
       highlightLines: true
@@ -16,15 +18,16 @@ output:
 library(tidyverse)
 library(lubridate)
 library(scales)
+library(zoo)
 ```
 
-```{r dane, echo=FALSE}
+```{r dane, echo=FALSE, warning=FALSE}
 # Linki do danych dziennych ze Stooq
 wig20_url <- "https://stooq.pl/q/d/l/?s=wig20&i=d"
 dax_url <- "https://stooq.pl/q/d/l/?s=^dax&i=d"
 px_url <- "https://stooq.pl/q/d/l/?s=^px&i=d"
 
-# Funkcja do pobierania danych z internetu
+# Funkcja do pobierania danych
 pobierz_dane <- function(url, indeks) {
   read_csv(url, col_types = cols()) %>%
     mutate(Data = ymd(Data),
@@ -35,7 +38,7 @@ pobierz_dane <- function(url, indeks) {
 
 wig20 <- pobierz_dane(wig20_url, "WIG20")
 dax <- pobierz_dane(dax_url, "DAX")
-px <- pobierz_dane(px_url, "PX (Czechy)")
+px <- pobierz_dane(px_url, "PX")
 
 # Wczytanie FTSE MIB z pliku lokalnego
 mib <- read_csv("^fmib_d.csv", col_types = cols()) %>%
@@ -49,9 +52,8 @@ indeksy <- bind_rows(wig20, dax, px, mib) %>%
   filter(Data >= "2020-01-01")
 ```
 
-# Zmiana indeksów od 2020 r.
 
-```{r wykres, echo=FALSE, fig.align='center', fig.width=10, fig.height=5}
+```{r wykres, echo=FALSE, warning=FALSE, fig.align='center', fig.width=10, fig.height=5}
 # Normalizacja do 100% na starcie
 indeksy_norm <- indeksy %>%
   group_by(Indeks) %>%
@@ -73,13 +75,11 @@ ggplot(indeksy_norm, aes(x = Data, y = Zmieniony, color = Indeks)) +
   theme_minimal()
 ```
 
-Po pandemicznym załamaniu w 2020 r. wszystkie indeksy wystartowały z podobnego poziomu. Największy wzrost osiągnęła giełda czeska (+82%), DAX i FTSE MIB zyskały ponad 50%. WIG20 wypada najsłabiej – tylko +22%.
+Po pandemicznym załamaniu w 2020 r. wszystkie indeksy wystartowały z podobnego poziomu. Największy wzrost osiągnęła giełda czeska (+82%), DAX i FTSE MIB zyskały ponad 50%. WIG20 wypada najsłabiej – tylko +22%, co czyni GPW najmniej atrakcyjną.
 ---
 
-# Zmiana procentowa od stycznia 2020 r.
-
 ```{r slupki, echo=FALSE, fig.align='center', fig.width=8, fig.height=5}
-# Oblicz zmiany procentowe
+# Zmiany procentowe
 zmiany <- indeksy %>%
   group_by(Indeks) %>%
   summarise(Poczatkowa = first(Close),
@@ -102,3 +102,91 @@ ggplot(zmiany, aes(x = reorder(Indeks, -ZmianaProc), y = ZmianaProc, fill = Inde
 ```
 
 Na tle głównych europejskich indeksów giełdowych GPW (WIG20) wypada zdecydowanie najsłabiej. Wzrost od 2020 roku to zaledwie ~22%, podczas gdy konkurencyjne rynki osiągały wyniki ponad dwukrotnie wyższe. Inwestowanie na GPW nie jest obecnie atrakcyjne. Lepiej szukać okazji za granicą.
+
+---
+
+```{r sharpe, echo=FALSE, message=FALSE, fig.align='center', fig.width=10, fig.height=5}
+
+# Funkcja Sharpe'a
+calculate_rolling_sharpe <- function(returns, risk_free_rate = 0.02 / 12, window_size = 12) {
+  rolling_sharpe <- numeric(length(returns))
+  for (i in window_size:length(returns)) {
+    window_returns <- returns[(i - window_size + 1):i]
+    excess_return <- mean(window_returns, na.rm = TRUE) - risk_free_rate
+    risk <- sd(window_returns, na.rm = TRUE)
+    rolling_sharpe[i] <- ifelse(risk > 0, excess_return / risk, NA)
+  }
+  rolling_sharpe[1:(window_size - 1)] <- NA
+  return(rolling_sharpe)
+}
+
+# Przygotowanie danych
+prepare_sharpe_data <- function(df, index_name) {
+  df %>%
+    mutate(
+      Data = ymd(Data),
+      RokMiesiac = floor_date(Data, unit = "month")
+    ) %>%
+    arrange(RokMiesiac) %>%
+    mutate(Zwrot = (Zamkniecie / lag(Zamkniecie)) - 1) %>%
+    filter(RokMiesiac >= as.Date("2020-01-01")) %>%
+    mutate(Indeks = index_name,
+           Sharpe = calculate_rolling_sharpe(Zwrot))
+}
+
+wig <- read_csv("https://stooq.pl/q/d/l/?s=wig20&i=m", col_names = TRUE)
+px  <- read_csv("https://stooq.pl/q/d/l/?s=^px&i=m",   col_names = TRUE)
+dax <- read_csv("https://stooq.pl/q/d/l/?s=^dax&i=m",  col_names = TRUE)
+
+colnames(wig) <- c("Data", "Otwarcie", "Najwyzszy", "Najnizszy", "Zamkniecie", "Wolumen")
+colnames(px)  <- c("Data", "Otwarcie", "Najwyzszy", "Najnizszy", "Zamkniecie", "Wolumen")
+colnames(dax) <- c("Data", "Otwarcie", "Najwyzszy", "Najnizszy", "Zamkniecie", "Wolumen")
+
+wig20_ready <- prepare_sharpe_data(wig, "WIG20")
+px_ready    <- prepare_sharpe_data(px, "PX")
+dax_ready   <- prepare_sharpe_data(dax, "DAX")
+
+ftse <- read_csv("^fmib_d.csv")
+colnames(ftse) <- c("Data", "Otwarcie", "Najwyzszy", "Najnizszy", "Zamkniecie", "Wolumen")
+
+ftse_monthly <- ftse %>%
+  mutate(Data = ymd(Data),
+         RokMiesiac = floor_date(Data, unit = "month")) %>%
+  group_by(RokMiesiac) %>%
+  summarise(Zamkniecie = last(Zamkniecie), .groups = "drop") %>%
+  arrange(RokMiesiac) %>%
+  mutate(Zwrot = (Zamkniecie / lag(Zamkniecie)) - 1,
+         Indeks = "FTSE MIB",
+         Sharpe = calculate_rolling_sharpe(Zwrot)) %>%
+  filter(RokMiesiac >= as.Date("2020-01-01"))
+
+# Połączenie danych
+sharpe_all <- bind_rows(wig20_ready, px_ready, dax_ready, ftse_monthly) %>%
+  filter(!is.na(Sharpe))
+
+# Wykres Sharpe'a
+sharpe_all$Indeks <- recode(sharpe_all$Indeks,
+  "WIG20"    = "WIG20 (Polska)",
+  "PX"       = "PX (Czechy)",
+  "DAX"      = "DAX (Niemcy)",
+  "FTSE MIB" = "FTSE MIB (Włochy)"
+)
+
+ggplot(sharpe_all %>% filter(RokMiesiac >= as.Date("2020-12-01")),
+  aes(x = RokMiesiac, y = Sharpe, color = Indeks)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_hline(yintercept = 1, linetype = "dotted", color = "green") +
+  geom_hline(yintercept = -1, linetype = "dotted", color = "red") +
+  labs(
+    title = "12-miesięczny wskaźnik Sharpe’a",
+    subtitle = "Dane miesięczne od 2020 roku • Stopa wolna od ryzyka: 2% rocznie",
+    y = "Wskaźnik Sharpe’a",
+    x = NULL,
+    color = "Indeks"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Wskaźnik Sharpe'a to informacja o zysku skorygowanym o ryzyko (>1 dobrze, <0 źle).W ciągu ostatnich 9 miesięcy WIG20 miał najniższy wskaźnik Sharpe’a, co świadczy o słabym stosunku zysku do ryzyka - obecnie najniższy poziom notuje FTSE MIB. Potwierdza to, że GPW jest najmniej opłacalną z porównywanych giełd
